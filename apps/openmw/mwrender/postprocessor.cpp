@@ -569,6 +569,8 @@ namespace MWRender
 
         for (const auto& technique : mTechniques)
         {
+            const auto& technique = *tech_it;
+
             if (!technique->isValid())
                 continue;
 
