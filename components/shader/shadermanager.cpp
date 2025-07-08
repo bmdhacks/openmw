@@ -1,5 +1,7 @@
 #include "shadermanager.hpp"
 
+#include <iostream> // <--- ADD
+#include <string>   // <--- ADD
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -122,8 +124,12 @@ namespace Shader
     // reference to allow automatic cleanup.
     static bool parseIncludes(const std::filesystem::path& shaderPath, std::string& source, const std::string& fileName,
         int& fileNumber, std::set<std::filesystem::path> cycleIncludeChecker,
-        std::set<std::filesystem::path>& includedFiles)
+        std::set<std::filesystem::path>& includedFiles, int depth) // <--- ADD 'int depth'
     {
+        // --- START: ADDED DEBUG CODE ---
+        std::cout << std::string(depth * 2, ' ') << "-> [" << depth << "] Processing: " << fileName << std::endl;
+        // --- END: ADDED DEBUG CODE ---
+
         includedFiles.insert(shaderPath / fileName);
         // An include is cyclic if it is being included by itself
         if (cycleIncludeChecker.insert(shaderPath / fileName).second == false)
@@ -176,9 +182,14 @@ namespace Shader
             std::stringstream buffer;
             buffer << includeFstream.rdbuf();
             std::string stringRepresentation = buffer.str();
+
+             // --- START: ADDED DEBUG CODE ---
+            std::cout << std::string(depth * 2, ' ') << "   Found #include \"" << includeFilename << "\", read " << stringRepresentation.length() << " bytes." << std::endl;
+            // --- END: ADDED DEBUG CODE ---
+
             if (!addLineDirectivesAfterConditionalBlocks(stringRepresentation)
                 || !parseIncludes(
-                    shaderPath, stringRepresentation, includeFilename, fileNumber, cycleIncludeChecker, includedFiles))
+                    shaderPath, stringRepresentation, includeFilename, fileNumber, cycleIncludeChecker, includedFiles, depth + 1)) // <--- PASS depth + 1
             {
                 Log(Debug::Error) << "In file included from " << fileName << "." << lineNumber;
                 return false;
@@ -478,7 +489,7 @@ namespace Shader
                         std::string source = buffer.str();
                         if (!addLineDirectivesAfterConditionalBlocks(source)
                             || !parseIncludes(std::filesystem::path(manager.mPath), source, templateName, fileNumber,
-                                {}, insertedPaths))
+                                {}, insertedPaths, 0))
                         {
                             break;
                         }
@@ -531,7 +542,7 @@ namespace Shader
             int fileNumber = 1;
             std::string source = buffer.str();
             if (!addLineDirectivesAfterConditionalBlocks(source)
-                || !parseIncludes(mPath, source, templateName, fileNumber, {}, insertedPaths))
+                || !parseIncludes(mPath, source, templateName, fileNumber, {}, insertedPaths, 0))
                 return nullptr;
             mHotReloadManager->templateIncludedFiles[templateName] = std::move(insertedPaths);
             templateIt = mShaderTemplates.insert(std::make_pair(templateName, source)).first;
@@ -550,6 +561,19 @@ namespace Shader
             }
 
             osg::ref_ptr<osg::Shader> shader(new osg::Shader(type ? *type : getShaderType(templateName)));
+
+            // --- START: ADDED DEBUG CODE ---
+            std::cout << "\n======================================================================\n";
+            std::cout << "---[DEBUG]--- FINAL PROCESSED SHADER SOURCE for '" << templateName << "'\n";
+            std::cout << "---           with defines:" << std::endl;
+            for (const auto& [key, val] : defines) {
+                std::cout << "---             " << key << " = " << val << std::endl;
+            }
+            std::cout << "----------------------------------------------------------------------\n";
+            std::cout << shaderSource << std::endl;
+            std::cout << "======================================================================\n\n";
+            // --- END: ADDED DEBUG CODE ---
+
             shader->setShaderSource(shaderSource);
             // Assign a unique prefix to allow the SharedStateManager to compare shaders efficiently.
             // Append shader source filename for debugging.
