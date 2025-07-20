@@ -327,9 +327,33 @@
                             <Property key="Caption" value="#{OMWEngine:WindowModeHint}"/>
                         </Widget>
 
-                        <Widget type="TextBox" skin="NormalText" position="0 238 352 18" align="Left Top" name="FovText">
+                        <Widget type="TextBox" skin="NormalText" position="0 258 352 18" align="Left Top" name="ResolutionScaleText">
+                            <Property key="Caption" value="#{OMWEngine:ResolutionScale}"/>
                         </Widget>
-                        <Widget type="ScrollBar" skin="MW_HScroll" position="0 262 352 18" align="HStretch Top">
+                        <Widget type="ScrollBar" skin="MW_HScroll" position="0 282 352 18" align="HStretch Top">
+                            <Property key="Range" value="10000"/>
+                            <Property key="Page" value="100"/>
+                            <UserString key="SettingType" value="Slider"/>
+                            <UserString key="SettingCategory" value="Video"/>
+                            <UserString key="SettingName" value="resolution scale"/>
+                            <UserString key="SettingValueType" value="Float"/>
+                            <UserString key="SettingMin" value="0.1"/>
+                            <UserString key="SettingMax" value="1.0"/>
+                            <UserString key="SettingLabelWidget" value="ResolutionScaleText"/>
+                            <UserString key="SettingLabelCaption" value="#{OMWEngine:ResolutionScale} (%s)"/>
+                        </Widget>
+                        <Widget type="TextBox" skin="SandText" position="0 306 352 18" align="Left Top">
+                            <Property key="Caption" value="10%"/>
+                            <Property key="TextAlign" value="Left"/>
+                        </Widget>
+                        <Widget type="TextBox" skin="SandText" position="0 306 352 18" align="Right Top">
+                            <Property key="Caption" value="100%"/>
+                            <Property key="TextAlign" value="Right"/>
+                        </Widget>
+
+                        <Widget type="TextBox" skin="NormalText" position="0 334 352 18" align="Left Top" name="FovText">
+                        </Widget>
+                        <Widget type="ScrollBar" skin="MW_HScroll" position="0 358 352 18" align="HStretch Top">
                             <Property key="Range" value="81"/>
                             <Property key="Page" value="1"/>
                             <UserString key="SettingType" value="Slider"/>
@@ -341,17 +365,17 @@
                             <UserString key="SettingLabelWidget" value="FovText"/>
                             <UserString key="SettingLabelCaption" value="FieldOfViewValue"/>
                         </Widget>
-                        <Widget type="TextBox" skin="SandText" position="0 286 352 18" align="Left Top">
+                        <Widget type="TextBox" skin="SandText" position="0 382 352 18" align="Left Top">
                             <Property key="Caption" value="#{OMWEngine:FieldOfViewLow}"/>
                             <Property key="TextAlign" value="Left"/>
                         </Widget>
-                        <Widget type="TextBox" skin="SandText" position="0 286 352 18" align="Right Top">
+                        <Widget type="TextBox" skin="SandText" position="0 382 352 18" align="Right Top">
                             <Property key="Caption" value="#{OMWEngine:FieldOfViewHigh}"/>
                             <Property key="TextAlign" value="Right"/>
                         </Widget>
-                        <Widget type="TextBox" skin="NormalText" position="0 308 352 18" align="Left Top" name="GammaText">
+                        <Widget type="TextBox" skin="NormalText" position="0 404 352 18" align="Left Top" name="GammaText">
                         </Widget>
-                        <Widget type="ScrollBar" skin="MW_HScroll" position="0 332 352 18" align="HStretch Top" name="GammaSlider">
+                        <Widget type="ScrollBar" skin="MW_HScroll" position="0 428 352 18" align="HStretch Top" name="GammaSlider">
                             <Property key="Range" value="10000"/>
                             <Property key="Page" value="300"/>
                             <UserString key="SettingType" value="Slider"/>
@@ -363,11 +387,11 @@
                             <UserString key="SettingLabelWidget" value="GammaText"/>
                             <UserString key="SettingLabelCaption" value="GammaCorrectionValue"/>
                         </Widget>
-                        <Widget type="TextBox" skin="SandText" position="0 356 352 18" align="Left Top" name="GammaTextDark">
+                        <Widget type="TextBox" skin="SandText" position="0 452 352 18" align="Left Top" name="GammaTextDark">
                             <Property key="Caption" value="#{OMWEngine:GammaDark}"/>
                             <Property key="TextAlign" value="Left"/>
                         </Widget>
-                        <Widget type="TextBox" skin="SandText" position="0 356 352 18" align="Right Top" name="GammaTextLight">
+                        <Widget type="TextBox" skin="SandText" position="0 452 352 18" align="Right Top" name="GammaTextLight">
                             <Property key="Caption" value="#{OMWEngine:GammaLight}"/>
                             <Property key="TextAlign" value="Right"/>
                         </Widget>

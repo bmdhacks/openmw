@@ -22,6 +22,7 @@ namespace Settings
 
         SettingValue<int> mResolutionX{ mIndex, "Video", "resolution x", makeMaxSanitizerInt(1) };
         SettingValue<int> mResolutionY{ mIndex, "Video", "resolution y", makeMaxSanitizerInt(1) };
+        SettingValue<float> mResolutionScale{ mIndex, "Video", "resolution scale", makeClampStrictMaxSanitizerFloat(0.1, 1.0) };
         SettingValue<WindowMode> mWindowMode{ mIndex, "Video", "window mode" };
         SettingValue<int> mScreen{ mIndex, "Video", "screen", makeMaxSanitizerInt(0) };
         SettingValue<bool> mMinimizeOnFocusLoss{ mIndex, "Video", "minimize on focus loss" };

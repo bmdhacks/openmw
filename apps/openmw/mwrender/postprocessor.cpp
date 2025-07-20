@@ -125,6 +125,8 @@ namespace MWRender
         , mSamples(Settings::video().mAntialiasing)
         , mPingPongCull(new PingPongCull(this))
         , mDistortionCallback(new DistortionCallback)
+        , mScaledViewportStateSet(new osg::StateSet)
+        , mScaledViewport(new osg::Viewport)
     {
         auto& shaderManager = mRendering.getResourceSystem()->getSceneManager()->getShaderManager();
 
@@ -147,6 +149,8 @@ namespace MWRender
         mHUDCamera->addChild(mCanvases[1]);
         mHUDCamera->setCullCallback(new HUDCullCallback);
         mViewer->getCamera()->addCullCallback(mPingPongCull);
+
+        mScaledViewportStateSet->setAttribute(mScaledViewport);
 
         // resolves the multisampled depth buffer and optionally draws an additional depth postpass
         mTransparentDepthPostPass
@@ -275,14 +279,27 @@ namespace MWRender
 
     void PostProcessor::traverse(osg::NodeVisitor& nv)
     {
-        unsigned frameId = nv.getTraversalNumber() % 2;
+        size_t frameId = nv.getTraversalNumber() % 2;
+        bool pushedStateSet = false;
 
         if (nv.getVisitorType() == osg::NodeVisitor::CULL_VISITOR)
-            cull(frameId, static_cast<osgUtil::CullVisitor*>(&nv));
+        {
+            osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(&nv);
+            mScaledViewport->setViewport(0, 0, renderWidth(), renderHeight());
+            cv->pushStateSet(mScaledViewportStateSet.get());
+            pushedStateSet = true;
+
+            cull(frameId, cv);
+        }
         else if (nv.getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR)
             update(frameId);
 
         osg::Group::traverse(nv);
+
+        if (pushedStateSet)
+        {
+            static_cast<osgUtil::CullVisitor*>(&nv)->popStateSet();
+        }
     }
 
     void PostProcessor::cull(unsigned frameId, osgUtil::CullVisitor* cv)
@@ -568,9 +585,10 @@ namespace MWRender
 
         std::vector<Fx::Types::RenderTarget> attachmentsToDirty;
 
-        for (const auto& technique : mTechniques)
+        for (auto tech_it = mTechniques.begin(); tech_it != mTechniques.end(); ++tech_it)
         {
-            if (!technique->isValid())
+            const auto& technique = *tech_it;
+            if (!technique || !technique->isValid())
                 continue;
 
             if (technique->getGLSLVersion() > mGLSLVersion)
@@ -636,14 +654,21 @@ namespace MWRender
                         uniform->mName, *type, static_cast<unsigned>(uniform->getNumElements())));
             }
 
-            for (const auto& pass : technique->getPasses())
+            // Begin changes
+            for (auto pass_it = technique->getPasses().begin(); pass_it != technique->getPasses().end(); ++pass_it)
             {
+                const auto& pass = *pass_it;
+            // End changes
                 int subTexUnit = texUnit;
                 Fx::DispatchNode::SubPass subPass;
 
                 pass->prepareStateSet(subPass.mStateSet, technique->getName());
 
                 node.mHandle = technique;
+
+                bool isFinalPass
+                    = (std::next(tech_it) == mTechniques.end() && std::next(pass_it) == technique->getPasses().end());
+                // End changes
 
                 if (!pass->getTarget().empty())
                 {
@@ -667,8 +692,8 @@ namespace MWRender
                     subPass.mRenderTexture->dirtyTextureObject();
 
                     subPass.mRenderTarget = new osg::FrameBufferObject;
-                    subPass.mRenderTarget->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0,
-                        osg::FrameBufferAttachment(subPass.mRenderTexture));
+                    subPass.mRenderTarget->setAttachment(
+                        osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0, osg::FrameBufferAttachment(subPass.mRenderTexture));
 
                     if (std::find_if(attachmentsToDirty.cbegin(), attachmentsToDirty.cend(),
                             [renderTarget](const auto& rt) { return renderTarget.mTarget == rt.mTarget; })
@@ -677,6 +702,13 @@ namespace MWRender
                         attachmentsToDirty.push_back(Fx::Types::RenderTarget(renderTarget));
                     }
                 }
+                // Begin changes
+                else if (!isFinalPass)
+                {
+                    subPass.mStateSet->setAttribute(new osg::Viewport(0, 0, renderWidth(), renderHeight()));
+                }
+                // else do *not* set a scaled viewport, allowing it to inherit the full-sized one from the
+                // HUD camera to correctly fill the screen
 
                 for (const auto& name : pass->getRenderTargets())
                 {
@@ -860,16 +892,16 @@ namespace MWRender
 
     int PostProcessor::renderWidth() const
     {
-        if (Stereo::getStereo())
-            return Stereo::Manager::instance().eyeResolution().x();
-        return mWidth;
+        float scale = static_cast<float>(Settings::video().mResolutionScale);
+        int baseWidth = Stereo::getStereo() ? Stereo::Manager::instance().eyeResolution().x() : mWidth;
+        return std::max(1, static_cast<int>(baseWidth * scale));
     }
 
     int PostProcessor::renderHeight() const
     {
-        if (Stereo::getStereo())
-            return Stereo::Manager::instance().eyeResolution().y();
-        return mHeight;
+        float scale = static_cast<float>(Settings::video().mResolutionScale);
+        int baseHeight = Stereo::getStereo() ? Stereo::Manager::instance().eyeResolution().y() : mHeight;
+        return std::max(1, static_cast<int>(baseHeight * scale));
     }
 
     void PostProcessor::triggerShaderReload()
