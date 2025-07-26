@@ -1,5 +1,7 @@
 #include "shadermanager.hpp"
 
+#include <iostream> // <--- ADD
+#include <string>   // <--- ADD
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -125,7 +127,7 @@ namespace Shader
         std::set<std::filesystem::path>& includedFiles, int depth) // <--- ADD 'int depth'
     {
         // --- START: ADDED DEBUG CODE ---
-        Log(Debug::Verbose) << std::string(depth * 2, ' ') << "-> [" << depth << "] Processing: " << fileName;
+        Log(Debug::Debug) << std::string(depth * 2, ' ') << "-> [" << depth << "] Processing: " << fileName;
         // --- END: ADDED DEBUG CODE ---
 
         includedFiles.insert(shaderPath / fileName);
@@ -182,7 +184,7 @@ namespace Shader
             std::string stringRepresentation = buffer.str();
 
              // --- START: ADDED DEBUG CODE ---
-            Log(Debug::Verbose) << std::string(depth * 2, ' ') << "   Found #include \"" << includeFilename << "\", read " << stringRepresentation.length() << " bytes.";
+            Log(Debug::Debug) << std::string(depth * 2, ' ') << "   Found #include \"" << includeFilename << "\", read " << stringRepresentation.length() << " bytes.";
             // --- END: ADDED DEBUG CODE ---
 
             if (!addLineDirectivesAfterConditionalBlocks(stringRepresentation)
@@ -561,15 +563,15 @@ namespace Shader
             osg::ref_ptr<osg::Shader> shader(new osg::Shader(type ? *type : getShaderType(templateName)));
 
             // --- START: ADDED DEBUG CODE ---
-            Log(Debug::Verbose) << "\n======================================================================";
-            Log(Debug::Verbose) << "---[DEBUG]--- FINAL PROCESSED SHADER SOURCE for '" << templateName;
-            Log(Debug::Verbose) << "---           with defines:";
+            Log(Debug::Debug) << "\n======================================================================\n";
+            Log(Debug::Debug) << "---[DEBUG]--- FINAL PROCESSED SHADER SOURCE for '" << templateName << "'\n";
+            Log(Debug::Debug) << "---           with defines:";
             for (const auto& [key, val] : defines) {
-                Log(Debug::Verbose) << "---             " << key << " = " << val;
+                Log(Debug::Debug) << "---             " << key << " = " << val;
             }
-            Log(Debug::Verbose) << "----------------------------------------------------------------------";
-            Log(Debug::Verbose) << shaderSource;
-            Log(Debug::Verbose) << "======================================================================\n";
+            Log(Debug::Debug) << "----------------------------------------------------------------------\n";
+            Log(Debug::Debug) << shaderSource;
+            Log(Debug::Debug) << "======================================================================\n\n";
             // --- END: ADDED DEBUG CODE ---
 
             shader->setShaderSource(shaderSource);
