@@ -1,5 +1,6 @@
 #include "renderingmanager.hpp"
 
+#include <algorithm>
 #include <cstdlib>
 #include <limits>
 
@@ -1382,15 +1383,18 @@ namespace MWRender
 
         mSharedUniformStateUpdater->setNear(mNearClip);
         mSharedUniformStateUpdater->setFar(mViewDistance);
+
+        float scale = static_cast<float>(Settings::video().mResolutionScale);
+
         if (Stereo::getStereo())
         {
             auto res = Stereo::Manager::instance().eyeResolution();
-            mSharedUniformStateUpdater->setScreenRes(res.x(), res.y());
+            mSharedUniformStateUpdater->setScreenRes(res.x() * scale, res.y() * scale);
             Stereo::Manager::instance().setMasterProjectionMatrix(mPerViewUniformStateUpdater->getProjectionMatrix());
         }
         else
         {
-            mSharedUniformStateUpdater->setScreenRes(width, height);
+            mSharedUniformStateUpdater->setScreenRes(width * scale, height * scale);
         }
 
         // Since our fog is not radial yet, we should take FOV in account, otherwise terrain near viewing distance may
@@ -1519,6 +1523,10 @@ namespace MWRender
             else if (it->first == "Video" && (it->second == "resolution x" || it->second == "resolution y"))
             {
                 updateProjection = true;
+            }
+            else if (it->first == "Video" && it->second == "resolution scale")
+            {
+                mPostProcessor->resize();
             }
             else if (it->first == "Camera" && it->second == "viewing distance")
             {

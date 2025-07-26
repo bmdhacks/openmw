@@ -276,13 +276,27 @@ namespace MWRender
     void PostProcessor::traverse(osg::NodeVisitor& nv)
     {
         size_t frameId = nv.getTraversalNumber() % 2;
+        osg::StateSet* pushedStateSet = nullptr;
 
         if (nv.getVisitorType() == osg::NodeVisitor::CULL_VISITOR)
+        {
+            // Push a small, scaled viewport for all children. This will be overridden by the HUD camera's callback.
+            osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(&nv);
+            pushedStateSet = new osg::StateSet;
+            pushedStateSet->setAttribute(new osg::Viewport(0, 0, renderWidth(), renderHeight()));
+            cv->pushStateSet(pushedStateSet);
+
             cull(frameId, static_cast<osgUtil::CullVisitor*>(&nv));
+        }
         else if (nv.getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR)
             update(frameId);
 
         osg::Group::traverse(nv);
+
+        if (pushedStateSet)
+        {
+            static_cast<osgUtil::CullVisitor*>(&nv)->popStateSet();
+        }
     }
 
     void PostProcessor::cull(size_t frameId, osgUtil::CullVisitor* cv)
@@ -567,7 +581,8 @@ namespace MWRender
 
         std::vector<Fx::Types::RenderTarget> attachmentsToDirty;
 
-        for (const auto& technique : mTechniques)
+        // Begin changes
+        for (auto tech_it = mTechniques.begin(); tech_it != mTechniques.end(); ++tech_it)
         {
             const auto& technique = *tech_it;
 
@@ -633,18 +648,27 @@ namespace MWRender
                     continue;
 
                 if (auto type = uniform->getType())
-                    uniform->setUniform(node.mRootStateSet->getOrCreateUniform(
-                        uniform->mName.c_str(), *type, uniform->getNumElements()));
+                    uniform->setUniform(
+                        node.mRootStateSet->getOrCreateUniform(uniform->mName.c_str(), *type, uniform->getNumElements()));
             }
 
-            for (const auto& pass : technique->getPasses())
+            // Begin changes
+            for (auto pass_it = technique->getPasses().begin(); pass_it != technique->getPasses().end(); ++pass_it)
             {
+                const auto& pass = *pass_it;
+            // End changes
                 int subTexUnit = texUnit;
                 Fx::DispatchNode::SubPass subPass;
 
                 pass->prepareStateSet(subPass.mStateSet, technique->getName());
 
                 node.mHandle = technique;
+
+                // Begin changes
+                // Check if this is the absolute final pass of the entire post-processing chain.
+                bool isFinalPass
+                    = (std::next(tech_it) == mTechniques.end() && std::next(pass_it) == technique->getPasses().end());
+                // End changes
 
                 if (!pass->getTarget().empty())
                 {
@@ -668,8 +692,8 @@ namespace MWRender
                     subPass.mRenderTexture->dirtyTextureObject();
 
                     subPass.mRenderTarget = new osg::FrameBufferObject;
-                    subPass.mRenderTarget->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0,
-                        osg::FrameBufferAttachment(subPass.mRenderTexture));
+                    subPass.mRenderTarget->setAttachment(
+                        osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0, osg::FrameBufferAttachment(subPass.mRenderTexture));
 
                     if (std::find_if(attachmentsToDirty.cbegin(), attachmentsToDirty.cend(),
                             [renderTarget](const auto& rt) { return renderTarget.mTarget == rt.mTarget; })
@@ -678,6 +702,16 @@ namespace MWRender
                         attachmentsToDirty.push_back(Fx::Types::RenderTarget(renderTarget));
                     }
                 }
+                // Begin changes
+                else if (!isFinalPass)
+                {
+                    // This is an intermediate pass that renders to a ping-pong buffer.
+                    // It must use the small, scaled viewport.
+                    subPass.mStateSet->setAttribute(new osg::Viewport(0, 0, renderWidth(), renderHeight()));
+                }
+                // else: This is the final pass. We do *not* set a viewport, allowing it
+                // to inherit the full-sized one from the HUD camera to correctly fill the screen.
+                // End changes
 
                 for (const auto& name : pass->getRenderTargets())
                 {
@@ -860,16 +894,16 @@ namespace MWRender
 
     int PostProcessor::renderWidth() const
     {
-        if (Stereo::getStereo())
-            return Stereo::Manager::instance().eyeResolution().x();
-        return mWidth;
+        float scale = static_cast<float>(Settings::video().mResolutionScale);
+        int baseWidth = Stereo::getStereo() ? Stereo::Manager::instance().eyeResolution().x() : mWidth;
+        return std::max(1, static_cast<int>(baseWidth * scale));
     }
 
     int PostProcessor::renderHeight() const
     {
-        if (Stereo::getStereo())
-            return Stereo::Manager::instance().eyeResolution().y();
-        return mHeight;
+        float scale = static_cast<float>(Settings::video().mResolutionScale);
+        int baseHeight = Stereo::getStereo() ? Stereo::Manager::instance().eyeResolution().y() : mHeight;
+        return std::max(1, static_cast<int>(baseHeight * scale));
     }
 
     void PostProcessor::triggerShaderReload()
