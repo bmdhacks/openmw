@@ -125,6 +125,8 @@ namespace MWRender
         , mSamples(Settings::video().mAntialiasing)
         , mPingPongCull(new PingPongCull(this))
         , mDistortionCallback(new DistortionCallback)
+        , mScaledViewportStateSet(new osg::StateSet)
+        , mScaledViewport(new osg::Viewport)
     {
         auto& shaderManager = mRendering.getResourceSystem()->getSceneManager()->getShaderManager();
 
@@ -147,6 +149,9 @@ namespace MWRender
         mHUDCamera->addChild(mCanvases[1]);
         mHUDCamera->setCullCallback(new HUDCullCallback);
         mViewer->getCamera()->addCullCallback(mPingPongCull);
+
+        // Initialize scaled viewport state set
+        mScaledViewportStateSet->setAttribute(mScaledViewport);
 
         // resolves the multisampled depth buffer and optionally draws an additional depth postpass
         mTransparentDepthPostPass
@@ -276,17 +281,17 @@ namespace MWRender
     void PostProcessor::traverse(osg::NodeVisitor& nv)
     {
         size_t frameId = nv.getTraversalNumber() % 2;
-        osg::StateSet* pushedStateSet = nullptr;
+        bool pushedStateSet = false;
 
         if (nv.getVisitorType() == osg::NodeVisitor::CULL_VISITOR)
         {
             // Push a small, scaled viewport for all children. This will be overridden by the HUD camera's callback.
             osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(&nv);
-            pushedStateSet = new osg::StateSet;
-            pushedStateSet->setAttribute(new osg::Viewport(0, 0, renderWidth(), renderHeight()));
-            cv->pushStateSet(pushedStateSet);
+            mScaledViewport->setViewport(0, 0, renderWidth(), renderHeight());
+            cv->pushStateSet(mScaledViewportStateSet.get());
+            pushedStateSet = true;
 
-            cull(frameId, static_cast<osgUtil::CullVisitor*>(&nv));
+            cull(frameId, cv);
         }
         else if (nv.getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR)
             update(frameId);

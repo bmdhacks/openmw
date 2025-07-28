@@ -268,6 +268,8 @@ namespace MWRender
         std::array<osg::ref_ptr<PingPongCanvas>, 2> mCanvases;
         osg::ref_ptr<TransparentDepthBinCallback> mTransparentDepthPostPass;
         osg::ref_ptr<DistortionCallback> mDistortionCallback;
+        osg::ref_ptr<osg::StateSet> mScaledViewportStateSet;
+        osg::ref_ptr<osg::Viewport> mScaledViewport;
 
         Fx::DispatchArray mTemplateData;
     };
