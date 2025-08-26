@@ -5,6 +5,7 @@
 
 #include <components/debug/debuglog.hpp>
 #include <components/misc/pathhelpers.hpp>
+#include <components/misc/resourcehelpers.hpp>
 #include <components/sceneutil/glextensions.hpp>
 #include <components/vfs/manager.hpp>
 #include <components/vfs/pathutil.hpp>
@@ -84,7 +85,10 @@ namespace Resource
 
     osg::ref_ptr<osg::Image> ImageManager::getImage(VFS::Path::NormalizedView path, bool disableFlip)
     {
-        osg::ref_ptr<osg::Object> obj = mCache->getRefFromObjectCache(path);
+        // Find the best available texture variant (KTX > DDS > original)
+        VFS::Path::Normalized resolvedPath = Misc::ResourceHelpers::findBestTextureVariant(path, *mVFS);
+
+        osg::ref_ptr<osg::Object> obj = mCache->getRefFromObjectCache(resolvedPath);
         if (obj)
             return osg::ref_ptr<osg::Image>(static_cast<osg::Image*>(obj.get()));
         else
@@ -92,21 +96,21 @@ namespace Resource
             Files::IStreamPtr stream;
             try
             {
-                stream = mVFS->get(path);
+                stream = mVFS->get(resolvedPath);
             }
             catch (std::exception& e)
             {
                 Log(Debug::Error) << "Failed to open image: " << e.what();
-                mCache->addEntryToObjectCache(path.value(), mWarningImage);
+                mCache->addEntryToObjectCache(resolvedPath.value(), mWarningImage);
                 return mWarningImage;
             }
 
-            const std::string ext(Misc::getFileExtension(path.value()));
+            const std::string ext(Misc::getFileExtension(resolvedPath.value()));
             osgDB::ReaderWriter* reader = osgDB::Registry::instance()->getReaderWriterForExtension(ext);
             if (!reader)
             {
-                Log(Debug::Error) << "Error loading " << path << ": no readerwriter for '" << ext << "' found";
-                mCache->addEntryToObjectCache(path.value(), mWarningImage);
+                Log(Debug::Error) << "Error loading " << resolvedPath << ": no readerwriter for '" << ext << "' found";
+                mCache->addEntryToObjectCache(resolvedPath.value(), mWarningImage);
                 return mWarningImage;
             }
 
@@ -118,8 +122,8 @@ namespace Resource
                 stream->read((char*)header, 18);
                 if (stream->gcount() != 18)
                 {
-                    Log(Debug::Error) << "Error loading " << path << ": couldn't read TGA header";
-                    mCache->addEntryToObjectCache(path.value(), mWarningImage);
+                    Log(Debug::Error) << "Error loading " << resolvedPath << ": couldn't read TGA header";
+                    mCache->addEntryToObjectCache(resolvedPath.value(), mWarningImage);
                     return mWarningImage;
                 }
                 int type = header[2];
@@ -136,22 +140,22 @@ namespace Resource
             osgDB::ReaderWriter::ReadResult result = reader->readImage(*stream, mOptions);
             if (!result.success())
             {
-                Log(Debug::Error) << "Error loading " << path << ": " << result.message() << " code "
+                Log(Debug::Error) << "Error loading " << resolvedPath << ": " << result.message() << " code "
                                   << result.status();
-                mCache->addEntryToObjectCache(path.value(), mWarningImage);
+                mCache->addEntryToObjectCache(resolvedPath.value(), mWarningImage);
                 return mWarningImage;
             }
 
             osg::ref_ptr<osg::Image> image = result.getImage();
 
-            image->setFileName(std::string(path.value()));
+            image->setFileName(std::string(resolvedPath.value()));
             if (!checkSupported(image))
             {
                 static bool uncompress = (getenv("OPENMW_DECOMPRESS_TEXTURES") != nullptr);
                 if (!uncompress)
                 {
-                    Log(Debug::Error) << "Error loading " << path << ": no S3TC texture compression support installed";
-                    mCache->addEntryToObjectCache(path.value(), mWarningImage);
+                    Log(Debug::Error) << "Error loading " << resolvedPath << ": no S3TC texture compression support installed";
+                    mCache->addEntryToObjectCache(resolvedPath.value(), mWarningImage);
                     return mWarningImage;
                 }
                 else
@@ -196,8 +200,8 @@ namespace Resource
                     // This is most likely a KTX texture that OSG can't flip
                     // We don't want it to be corrupted or displayed incorrectly, so bail
                     // OSGoS *can* flip RGTC, but we can't verify that (yet?)
-                    Log(Debug::Error) << "Error loading " << path << ": cannot flip non-S3TC compressed texture";
-                    mCache->addEntryToObjectCache(path.value(), mWarningImage);
+                    Log(Debug::Error) << "Error loading " << resolvedPath << ": cannot flip non-S3TC compressed texture";
+                    mCache->addEntryToObjectCache(resolvedPath.value(), mWarningImage);
                     return mWarningImage;
                 }
 
@@ -205,7 +209,7 @@ namespace Resource
                 image->setOrigin(osg::Image::TOP_LEFT);
             }
 
-            mCache->addEntryToObjectCache(path.value(), image);
+            mCache->addEntryToObjectCache(resolvedPath.value(), image);
             return image;
         }
     }

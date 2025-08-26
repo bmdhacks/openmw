@@ -24,6 +24,10 @@ namespace Misc
     // so we have the opportunity to use proper resource handling for content created in OpenMW-CS.
     namespace ResourceHelpers
     {
+        // Find the best available texture variant (KTX > DDS > original)
+        // Returns the path with the best available extension
+        VFS::Path::Normalized findBestTextureVariant(VFS::Path::NormalizedView path, const VFS::Manager& vfs);
+
         bool changeExtensionToDds(std::string& path);
         VFS::Path::Normalized correctResourcePath(std::span<const VFS::Path::NormalizedView> topLevelDirectories,
             VFS::Path::NormalizedView resPath, const VFS::Manager& vfs, VFS::Path::ExtensionView ext = {});
