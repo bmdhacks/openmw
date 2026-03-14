@@ -58,8 +58,10 @@ namespace MWGui
         getWidget(mIncreaseButton, "IncreaseButton");
         getWidget(mDecreaseButton, "DecreaseButton");
         getWidget(mNameEdit, "NameEdit");
+        mNameEdit->setUserString("DisableOSK", "true");
         getWidget(mItemView, "ItemView");
         getWidget(mFilterValue, "FilterValue");
+        mFilterValue->setUserString("DisableOSK", "true");
         getWidget(mFilterType, "FilterType");
 
         mBrewCountEdit->eventValueChanged += MyGUI::newDelegate(this, &AlchemyWindow::onCountValueChanged);

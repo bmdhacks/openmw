@@ -120,6 +120,7 @@ namespace MWGui
     class ItemTransfer;
     class ControllerButtonsOverlay;
     class InventoryTabsOverlay;
+    class OnScreenKeyboard;
 
     class WindowManager : public MWBase::WindowManager
     {
@@ -402,6 +403,8 @@ namespace MWGui
         void restoreControllerTooltips() override;
         void updateControllerButtonsOverlay() override;
 
+        MWGui::OnScreenKeyboard* getOnScreenKeyboard() override;
+
         // Used in Lua bindings
         const std::vector<GuiMode>& getGuiModeStack() const override { return mGuiModes; }
         void setDisabledByLua(std::string_view windowId, bool disabled) override;
@@ -473,6 +476,7 @@ namespace MWGui
         ContainerWindow* mContainerWindow;
         ControllerButtonsOverlay* mControllerButtonsOverlay;
         InventoryTabsOverlay* mInventoryTabsOverlay;
+        std::unique_ptr<OnScreenKeyboard> mOnScreenKeyboard;
 
         std::vector<std::unique_ptr<WindowBase>> mWindows;
 

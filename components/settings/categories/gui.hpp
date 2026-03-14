@@ -31,6 +31,7 @@ namespace Settings
         SettingValue<MyGUI::Colour> mColorBackgroundOwned{ mIndex, "GUI", "color background owned" };
         SettingValue<MyGUI::Colour> mColorCrosshairOwned{ mIndex, "GUI", "color crosshair owned" };
         SettingValue<bool> mKeyboardNavigation{ mIndex, "GUI", "keyboard navigation" };
+        SettingValue<bool> mOnScreenKeyboard{ mIndex, "GUI", "on screen keyboard" };
         SettingValue<bool> mColorTopicEnable{ mIndex, "GUI", "color topic enable" };
         SettingValue<MyGUI::Colour> mColorTopicSpecific{ mIndex, "GUI", "color topic specific" };
         SettingValue<MyGUI::Colour> mColorTopicSpecificOver{ mIndex, "GUI", "color topic specific over" };
