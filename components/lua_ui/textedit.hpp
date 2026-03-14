@@ -12,7 +12,7 @@ namespace LuaUi
         MYGUI_RTTI_DERIVED(LuaTextEdit)
 
     public:
-        bool isTextInput() override { return mEditBox->getEditStatic(); }
+        bool isTextInput() override { return !mEditBox->getEditStatic(); }
 
     protected:
         void initialize() override;

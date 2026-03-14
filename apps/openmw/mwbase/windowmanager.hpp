@@ -60,6 +60,7 @@ namespace MWWorld
 namespace MWGui
 {
     class Layout;
+    class OnScreenKeyboard;
 
     class Console;
     class SpellWindow;
@@ -401,6 +402,8 @@ namespace MWBase
         /// Restore tooltip visibility if user has them enabled but they were hidden by mouse movement
         virtual void restoreControllerTooltips() = 0;
         virtual void updateControllerButtonsOverlay() = 0;
+
+        virtual MWGui::OnScreenKeyboard* getOnScreenKeyboard() = 0;
 
         // Used in Lua bindings
         virtual const std::vector<MWGui::GuiMode>& getGuiModeStack() const = 0;

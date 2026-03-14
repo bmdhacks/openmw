@@ -44,6 +44,7 @@
 
 #include <components/vfs/manager.hpp>
 
+#include <components/widgets/numericeditbox.hpp>
 #include <components/widgets/tags.hpp>
 #include <components/widgets/widgets.hpp>
 
@@ -107,6 +108,7 @@
 #include "loadingscreen.hpp"
 #include "mainmenu.hpp"
 #include "merchantrepair.hpp"
+#include "onscreenkeyboard.hpp"
 #include "postprocessorhud.hpp"
 #include "quickkeysmenu.hpp"
 #include "recharge.hpp"
@@ -521,6 +523,8 @@ namespace MWGui
         auto inventoryTabsOverlay = std::make_unique<InventoryTabsOverlay>();
         mInventoryTabsOverlay = inventoryTabsOverlay.get();
         mWindows.push_back(std::move(inventoryTabsOverlay));
+
+        mOnScreenKeyboard = std::make_unique<OnScreenKeyboard>();
 
         mControllerTooltipEnabled = Settings::gui().mControllerTooltips;
         mActiveControllerWindows[GM_Inventory] = 1; // Start on Inventory page
@@ -1061,6 +1065,9 @@ namespace MWGui
 
         if (mInventoryTabsOverlay && mInventoryTabsOverlay->isVisible())
             mInventoryTabsOverlay->onFrame(frameDuration);
+
+        if (mOnScreenKeyboard)
+            mOnScreenKeyboard->onFrame(frameDuration);
 
         if (!gameRunning)
             return;
@@ -1672,6 +1679,11 @@ namespace MWGui
         return mPostProcessorHud;
     }
 
+    MWGui::OnScreenKeyboard* WindowManager::getOnScreenKeyboard()
+    {
+        return mOnScreenKeyboard.get();
+    }
+
     void WindowManager::useItem(const MWWorld::Ptr& item, bool bypassBeastRestrictions)
     {
         if (mInventoryWindow)
@@ -1875,11 +1887,34 @@ namespace MWGui
     {
         bool isEditBox = widget && widget->castType<MyGUI::EditBox>(false);
         LuaUi::WidgetExtension* luaWidget = dynamic_cast<LuaUi::WidgetExtension*>(widget);
+
+        // If the focused widget is a child of a Lua widget (e.g. the inner EditBox of a
+        // LuaTextEdit), check the parent for the isTextInput() override.
+        if (!luaWidget && widget && widget->getParent())
+            luaWidget = dynamic_cast<LuaUi::WidgetExtension*>(widget->getParent());
+
         bool capturesInput = luaWidget ? luaWidget->isTextInput() : isEditBox;
+
+        // Widgets can opt out of the on-screen keyboard via a "DisableOSK" user string
+        // (e.g. alchemy potion name, NumericEditBox sliders).
+        bool disableOSK = widget
+            && (widget->isUserString("DisableOSK") || widget->castType<Gui::NumericEditBox>(false));
+
         if (widget && capturesInput)
+        {
             SDL_StartTextInput();
+            if (mOnScreenKeyboard && !disableOSK && !mOnScreenKeyboard->isDismissed()
+                && MWBase::Environment::get().getInputManager()->joystickLastUsed())
+                mOnScreenKeyboard->show();
+            else if (mOnScreenKeyboard && disableOSK)
+                mOnScreenKeyboard->hide();
+        }
         else
+        {
             SDL_StopTextInput();
+            if (mOnScreenKeyboard)
+                mOnScreenKeyboard->hide();
+        }
     }
 
     void WindowManager::setEnemy(const MWWorld::Ptr& enemy)

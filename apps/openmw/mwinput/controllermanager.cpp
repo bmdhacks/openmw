@@ -16,6 +16,7 @@
 #include "../mwbase/luamanager.hpp"
 #include "../mwbase/statemanager.hpp"
 #include "../mwbase/windowmanager.hpp"
+#include "../mwgui/onscreenkeyboard.hpp"
 #include "../mwgui/windowbase.hpp"
 
 #include "actions.hpp"
@@ -186,6 +187,18 @@ namespace MWInput
             return;
 
         mJoystickLastUsed = true;
+
+        // Route releases to OSK when it's active (for d-pad repeat reset)
+        if (SDL_IsTextInputActive())
+        {
+            auto* osk = MWBase::Environment::get().getWindowManager()->getOnScreenKeyboard();
+            if (osk && osk->isVisible())
+            {
+                osk->onControllerButtonReleased(arg);
+                return;
+            }
+        }
+
         if (MWBase::Environment::get().getWindowManager()->isGuiMode())
         {
             if (mGamepadGuiCursorEnabled && (!Settings::gui().mControllerMenus || mGamepadMousePressed))
@@ -253,6 +266,19 @@ namespace MWInput
     bool ControllerManager::gamepadToGuiControl(const SDL_ControllerButtonEvent& arg)
     {
         MWBase::WindowManager* winMgr = MWBase::Environment::get().getWindowManager();
+
+        // Route to on-screen keyboard when text input is active
+        if (SDL_IsTextInputActive())
+        {
+            auto* osk = winMgr->getOnScreenKeyboard();
+            if (osk)
+            {
+                if (!osk->isVisible() && !osk->isDismissed())
+                    osk->show();
+                if (osk->isVisible())
+                    return osk->onControllerButtonEvent(arg);
+            }
+        }
 
         if (Settings::gui().mControllerMenus)
         {
