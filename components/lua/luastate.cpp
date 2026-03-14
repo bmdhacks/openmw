@@ -61,7 +61,7 @@ namespace LuaUtil
 
     static constexpr int64_t countHookStep = 1000;
 
-    bool LuaState::sProfilerEnabled = true;
+    bool LuaState::sProfilerEnabled = false;
 
     void LuaState::countHook(lua_State* state, lua_Debug* /*ar*/)
     {

@@ -286,17 +286,14 @@ set(USED_OSG_COMPONENTS
     osgAnimation
     osgDB
     osgGA
-    osgFX
     osgParticle
     osgText
     osgUtil
     osgShadow
-    osgSim
     osgViewer
     )
 set(USED_OSG_PLUGINS
     osgdb_bmp
-    osgdb_dae
     osgdb_dds
     osgdb_freetype
     osgdb_jpeg
@@ -304,16 +301,6 @@ set(USED_OSG_PLUGINS
     osgdb_png
     osgdb_serializers_osg
     osgdb_tga)
-
-if(NOT COLLADA_DOM_VERSION_MAJOR)
-    set(COLLADA_DOM_VERSION_MAJOR 2)
-endif()
-
-if(NOT COLLADA_DOM_VERSION_MINOR)
-    set(COLLADA_DOM_VERSION_MINOR 5)
-endif()
-
-find_package(collada_dom 2.5)
 
 option(OPENMW_USE_SYSTEM_ICU "Use system ICU library instead of internal. If disabled, requires autotools" ON)
 if(OPENMW_USE_SYSTEM_ICU)
@@ -347,34 +334,6 @@ find_package(FFmpeg REQUIRED COMPONENTS AVCODEC AVFORMAT AVUTIL SWSCALE SWRESAMP
 
 if(FFmpeg_FOUND)
     SET(FFVER_OK TRUE)
-
-    # Can not detect FFmpeg version on Windows or Android for now
-    if (NOT WIN32 AND NOT ANDROID)
-        if(FFmpeg_AVFORMAT_VERSION VERSION_LESS "57.56.100")
-            message(STATUS "libavformat is too old! (${FFmpeg_AVFORMAT_VERSION}, wanted 57.56.100)")
-            set(FFVER_OK FALSE)
-        endif()
-        if(FFmpeg_AVCODEC_VERSION VERSION_LESS "57.64.100")
-            message(STATUS "libavcodec is too old! (${FFmpeg_AVCODEC_VERSION}, wanted 57.64.100)")
-            set(FFVER_OK FALSE)
-        endif()
-        if(FFmpeg_AVUTIL_VERSION VERSION_LESS "55.34.100")
-            message(STATUS "libavutil is too old! (${FFmpeg_AVUTIL_VERSION}, wanted 55.34.100)")
-            set(FFVER_OK FALSE)
-        endif()
-        if(FFmpeg_SWSCALE_VERSION VERSION_LESS "4.2.100")
-            message(STATUS "libswscale is too old! (${FFmpeg_SWSCALE_VERSION}, wanted 4.2.100)")
-            set(FFVER_OK FALSE)
-        endif()
-        if(FFmpeg_SWRESAMPLE_VERSION VERSION_LESS "2.3.100")
-            message(STATUS "libswresample is too old! (${FFmpeg_SWRESAMPLE_VERSION}, wanted 2.3.100)")
-            set(FFVER_OK FALSE)
-        endif()
-    endif()
-
-    if(NOT FFVER_OK AND NOT APPLE)  # unable to detect on version on MacOS < 11.0
-        message(FATAL_ERROR "FFmpeg version is too old, 3.2 is required" )
-    endif()
 endif()
 
 if(NOT FFmpeg_FOUND)
@@ -527,8 +486,6 @@ include_directories(
     ${ICU_INCLUDE_DIRS}
 )
 include_directories(".")
-
-link_directories(${COLLADA_DOM_LIBRARY_DIRS})
 
 if(MYGUI_STATIC)
     add_compile_definitions(MYGUI_STATIC)

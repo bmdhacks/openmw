@@ -1,0 +1,11 @@
+// Compatibility shim: maps std::format to fmt::format for GCC < 13
+// GCC 12's libstdc++ lacks <format>; {fmt} provides equivalent functionality.
+#pragma once
+
+#include <fmt/format.h>
+
+namespace std {
+    using fmt::format;
+    using fmt::vformat_to;
+    using fmt::make_format_args;
+}
